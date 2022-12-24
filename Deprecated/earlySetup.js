@@ -1,111 +1,87 @@
 /** @param {NS} ns */
 export async function main(ns) {
-	ns.tail()
-	let servers = findBots(ns, await depthScan(ns, "home"));
-	let targets = findProfitable(ns, servers);
-	
+    ns.tail();
+    let servers = findBots(ns, await depthScan(ns, "home"));
+    let targets = findProfitable(ns, servers);
 }
-
 export async function depthScan(ns, target) {
-	//Hold target name, make array for output, and assign scan results to variable
-	var output = [];
-	var result = ns.scan(target);
-
-	//Removes the first scan results as this is the parent, to avoid infinite recursion
-	if (target != "home") {
-		result.shift();
-	}
-
-	while (result.length > 0) {
-		let server = result.shift();
-
-		//Check for root and get it if not
-		if (ns.hasRootAccess(server) == false) {
-			//ns.print("Getting Root Access on " + target);
-			await getRootAccess(ns, server);
-		}
-
-		//Add server to output
-		if (output.includes(server) == false && ns.hasRootAccess(server)) {
-			ns.print("Adding " + server + " to output.")
-			output.push(ns.getServer(server));
-			//Recursively run this function on current server and push return to output
-			let result2 = await depthScan(ns, server);
-
-			while (result2.length > 0) {
-				let server2 = result2.shift();
-				if (output.includes(result2) == false) {
-					output.push(server2);
-				}
-			}
-		}
-
-	}
-	return output;
+    //Hold target name, make array for output, and assign scan results to variable
+    var output = [];
+    var result = ns.scan(target);
+    //Removes the first scan results as this is the parent, to avoid infinite recursion
+    if (target != "home") {
+        result.shift();
+    }
+    while (result.length > 0) {
+        let server = result.shift();
+        //Check for root and get it if not
+        if (ns.hasRootAccess(server) == false) {
+            //ns.print("Getting Root Access on " + target);
+            await getRootAccess(ns, server);
+        }
+        //Add server to output
+        if (output.includes(server) == false && ns.hasRootAccess(server)) {
+            ns.print("Adding " + server + " to output.");
+            output.push(ns.getServer(server));
+            //Recursively run this function on current server and push return to output
+            let result2 = await depthScan(ns, server);
+            while (result2.length > 0) {
+                let server2 = result2.shift();
+                if (output.includes(result2) == false) {
+                    output.push(server2);
+                }
+            }
+        }
+    }
+    return output;
 }
-
 export async function getRootAccess(ns, target) {
-	var ports = ns.getServerNumPortsRequired(target);
-
-	if (ports > 4 && ns.fileExists("SQLInject.exe", "home")) {
-		await ns.sqlinject(target);
-	}
-	if (ports > 3 && ns.fileExists("HTTPWorm.exe", "home")) {
-		await ns.httpworm(target);
-	}
-	if (ports > 2 && ns.fileExists("RelaySMTP.exe", "home")) {
-		await ns.relaysmtp(target);
-		ns.print("SMTP")
-	}
-	if (ports > 1 && ns.fileExists("FTPCrack.exe", "home")) {
-		await ns.ftpcrack(target);
-		ns.print("FTP")
-	}
-	if (ports > 0 && ns.fileExists("BruteSSH.exe", "home")) {
-		ns.print("Brute")
-		await ns.brutessh(target);
-	}
-	
-	await ns.nuke(target);
+    var ports = ns.getServerNumPortsRequired(target);
+    if (ports > 4 && ns.fileExists("SQLInject.exe", "home")) {
+        await ns.sqlinject(target);
+    }
+    if (ports > 3 && ns.fileExists("HTTPWorm.exe", "home")) {
+        await ns.httpworm(target);
+    }
+    if (ports > 2 && ns.fileExists("RelaySMTP.exe", "home")) {
+        await ns.relaysmtp(target);
+        ns.print("SMTP");
+    }
+    if (ports > 1 && ns.fileExists("FTPCrack.exe", "home")) {
+        await ns.ftpcrack(target);
+        ns.print("FTP");
+    }
+    if (ports > 0 && ns.fileExists("BruteSSH.exe", "home")) {
+        ns.print("Brute");
+        await ns.brutessh(target);
+    }
+    await ns.nuke(target);
 }
-
 export function findProfitable(ns, servers) {
-	let pHacking = ns.getHackingLevel();
-	let viable = []
-
-	for (let server of servers) {
-
-		if (server["requiredHackingSkill"] <= (pHacking / 3) && server["moneyMax"] > 0) {
-			viable.push(server)
-		}
-
-	}
-	
-	let output = viable.sort(({moneyMax:a}, {moneyMax:b}) => b-a);
-
-	for (let server of output) {
-		ns.print(server["hostname"], " $= ", server["moneyMax"])
-	}
-
-	return output
-
+    let pHacking = ns.getHackingLevel();
+    let viable = [];
+    for (let server of servers) {
+        if (server["requiredHackingSkill"] <= (pHacking / 3) && server["moneyMax"] > 0) {
+            viable.push(server);
+        }
+    }
+    let output = viable.sort(({ moneyMax: a }, { moneyMax: b }) => b - a);
+    for (let server of output) {
+        ns.print(server["hostname"], " $= ", server["moneyMax"]);
+    }
+    return output;
 }
-
 export function findBots(ns, servers) {
-	let viable = [];
-
-	for (let server of servers) {
-		if (server["maxRam"] > 0) {
-			viable.push(server);
-		}
-	}
-
-	
-	let output = viable.sort(({maxRam:a}, {maxRam:b}) => b-a);
-
-	for (let server of output) {
-		ns.print(server["hostname"], " RAM ", server["maxRam"])
-	}
-
-	return output
+    let viable = [];
+    for (let server of servers) {
+        if (server["maxRam"] > 0) {
+            viable.push(server);
+        }
+    }
+    let output = viable.sort(({ maxRam: a }, { maxRam: b }) => b - a);
+    for (let server of output) {
+        ns.print(server["hostname"], " RAM ", server["maxRam"]);
+    }
+    return output;
 }
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZWFybHlTZXR1cC5qcyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbIi4uLy4uL3NyYy9EZXByZWNhdGVkL2Vhcmx5U2V0dXAuanMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IkFBQUEscUJBQXFCO0FBQ3JCLE1BQU0sQ0FBQyxLQUFLLFVBQVUsSUFBSSxDQUFDLEVBQUU7SUFDNUIsRUFBRSxDQUFDLElBQUksRUFBRSxDQUFBO0lBQ1QsSUFBSSxPQUFPLEdBQUcsUUFBUSxDQUFDLEVBQUUsRUFBRSxNQUFNLFNBQVMsQ0FBQyxFQUFFLEVBQUUsTUFBTSxDQUFDLENBQUMsQ0FBQztJQUN4RCxJQUFJLE9BQU8sR0FBRyxjQUFjLENBQUMsRUFBRSxFQUFFLE9BQU8sQ0FBQyxDQUFDO0FBRTNDLENBQUM7QUFFRCxNQUFNLENBQUMsS0FBSyxVQUFVLFNBQVMsQ0FBQyxFQUFFLEVBQUUsTUFBTTtJQUN6Qyw4RUFBOEU7SUFDOUUsSUFBSSxNQUFNLEdBQUcsRUFBRSxDQUFDO0lBQ2hCLElBQUksTUFBTSxHQUFHLEVBQUUsQ0FBQyxJQUFJLENBQUMsTUFBTSxDQUFDLENBQUM7SUFFN0IsbUZBQW1GO0lBQ25GLElBQUksTUFBTSxJQUFJLE1BQU0sRUFBRTtRQUNyQixNQUFNLENBQUMsS0FBSyxFQUFFLENBQUM7S0FDZjtJQUVELE9BQU8sTUFBTSxDQUFDLE1BQU0sR0FBRyxDQUFDLEVBQUU7UUFDekIsSUFBSSxNQUFNLEdBQUcsTUFBTSxDQUFDLEtBQUssRUFBRSxDQUFDO1FBRTVCLGtDQUFrQztRQUNsQyxJQUFJLEVBQUUsQ0FBQyxhQUFhLENBQUMsTUFBTSxDQUFDLElBQUksS0FBSyxFQUFFO1lBQ3RDLCtDQUErQztZQUMvQyxNQUFNLGFBQWEsQ0FBQyxFQUFFLEVBQUUsTUFBTSxDQUFDLENBQUM7U0FDaEM7UUFFRCxzQkFBc0I7UUFDdEIsSUFBSSxNQUFNLENBQUMsUUFBUSxDQUFDLE1BQU0sQ0FBQyxJQUFJLEtBQUssSUFBSSxFQUFFLENBQUMsYUFBYSxDQUFDLE1B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
