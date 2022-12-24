@@ -1,0 +1,35 @@
+//Target hostname
+var hostname = "nectar-net";
+//Grow target balance threshold
+var balanceThreshold = getServerMaxMoney(hostname) * 0.8
+//Weaken target security threshold
+var securityThreshold = getServerMinSecurityLevel + 0.05
+
+//If possible open target SSH using BruteSSH
+if (fileExists("BruteSSH.exe", "home")) {
+	brutessh(hostname);
+}
+
+//Gain root access with NUKE if not already done
+if (hasRootAccess(hostname) == false) {
+	nuke(hostname);
+}
+
+//Mainloop - hacks/weakens and grows until killed
+while(true) {
+	//If current security level is above our threshold, weaken to reduce it
+	if (getServerSecurityLevel(hostname) > securityThreshold) {
+		weaken(hostname);
+	}
+	//If current balance below balance threshold, grow to increase it
+	if (getServerMoneyAvailable(hostname) > balanceThreshold) {
+		grow(hostname);
+	}
+	//If current security level is above our threshold, weaken to reduce it
+	if (getServerSecurityLevel(hostname) > securityThreshold) {
+		weaken(hostname);
+	}
+	//hack and take the money
+	hack(hostname);
+
+}
