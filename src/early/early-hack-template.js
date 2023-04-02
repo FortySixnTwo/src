@@ -4,7 +4,6 @@ async function getServers(ns) {
   const root = 'home';
   const visited = [];
   const stack = [root];
-  ns.tail();
 
   while (stack.length > 0) {
     const current = stack.pop();
@@ -31,17 +30,18 @@ function threadCount(ns, hostname, scriptRam) {
 }
 
 export async function main(ns) {
-  ns.disableLog('scan');
+  ns.disableLog('ALL');
+  ns.tail();
 
   const servers = await getServers(ns);
   const targetServer = ns.args[0];
   const scriptRam = 1.75;
-  ns.print(servers);
+  //ns.print(servers);
 
   // Infinite loop that does a bunch of stuff
   while (true) {
     for (let server of servers) {
-      ns.print(server);
+      //ns.print(server);
       if (ns.hasRootAccess(server)) {
         let availableThreads = threadCount(ns, server, scriptRam);
         if (availableThreads > 1) {
@@ -61,21 +61,21 @@ export async function main(ns) {
         }
       } else {
         try {
-          ns.print('Trying to crack server.');
-          ns.brutesssh(server);
+          //ns.print('Trying to crack server.');
+          ns.brutessh(server);
           ns.ftpcrack(server);
           ns.relaysmtp(server);
           ns.httpworm(server);
           ns.sqlinject(server);
         } catch {
-          ns.print('Failed to crack server? Probably?');
+          //ns.print('Failed to crack server? Probably?');
         }
 
         try {
-          ns.print('Trying to nuke server.');
+          //ns.print('Trying to nuke server.');
           ns.nuke(server);
         } catch {
-          ns.print('Failed to nuke, probably?');
+          //ns.print('Failed to nuke, probably?');
         }
       }
     }
