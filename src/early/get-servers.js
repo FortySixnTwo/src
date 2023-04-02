@@ -1,11 +1,11 @@
 /** @param {NS} ns */
 export async function main(ns) {
-  const root = "home";
+  const root = 'home';
   const visited = new Set();
   const stack = [root];
-  ns.disableLog("scan");
+  ns.disableLog('scan');
   ns.tail();
-  
+
   while (stack.length > 0) {
     const current = stack.pop();
 
