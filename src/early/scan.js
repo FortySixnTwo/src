@@ -1,10 +1,9 @@
 /** @param {NS} ns */
-export async function main(ns) {
+export async function scan(ns) {
   const root = 'home';
   const visited = new Set();
   const stack = [root];
   ns.disableLog('scan');
-  ns.tail();
 
   while (stack.length > 0) {
     const current = stack.pop();
@@ -21,6 +20,6 @@ export async function main(ns) {
       }
     }
   }
-
-  ns.print([...visited]);
+  //ns.print([...visited]);
+  return visited;
 }

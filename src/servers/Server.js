@@ -77,6 +77,15 @@ export class Server {
   /*
    * Extra stats
    */
+  threadCount(ns, scriptRam) {
+    let threads = 0;
+    threads = (this.maxRam - ns.getServerUsedRam(this.hostname)) / scriptRam;
+
+    if (this.hostname.equals('home')) {
+      threads * 0.8;
+    }
+    return Math.floor(threads);
+  }
 
   /*
    * Helpers

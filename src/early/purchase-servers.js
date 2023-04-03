@@ -1,5 +1,6 @@
 /** @param {NS} ns */
 export async function main(ns) {
+  ns.disableLog('ALL');
   let servers = ns.getPurchasedServers();
   await buyServers(ns);
   await upgradeServers(ns, servers);
@@ -26,13 +27,21 @@ export async function buyServers(ns) {
 export async function upgradeServers(ns, servers) {
   //Always check if you can buy a server double the size of the current
   //TODO - Swap this for a while upgrades left?
+  let minUpgrade = 0;
   while (servers.length > 0) {
+    let nextMin = 999999999;
+    ns.print(`Current RAM Upgrade is ${minUpgrade}, next RAM upgrade is ${nextMin}`);
     for (let i = 0; i < servers.length; i++) {
-      ns.print("ram upgradthing");
       let server = servers[i];
       let upgradedRam = ns.getServerMaxRam(server) * 2;
-      ns.upgradePurchasedServer(server, upgradedRam);
+      if (upgradedRam == minUpgrade) {
+        ns.upgradePurchasedServer(server, upgradedRam);
+      }
+      if (upgradedRam < nextMin || nextMin == 0) {
+        nextMin = upgradedRam;
+      }
     }
-    await ns.sleep(1000);
+    minUpgrade = nextMin;
+    await ns.sleep(3000);
   }
 }
