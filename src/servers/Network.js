@@ -1,5 +1,5 @@
 /** @param {NS} ns */
-import { Table } from '/src/tables/Table.js';
+import { Table } from '/src/ui/tables/Table.js';
 
 export class Network {
   constructor(ns, debug = false) {
@@ -55,7 +55,7 @@ export class Network {
     }
   }
 
-  // Helpers
+  // Data Helpers
   sortServersBy(property, descending = true) {
     this.servers.sort((a, b) => {
       //this.ns.print(`${a[property]} vs ${b[property]}`);
@@ -87,6 +87,8 @@ export class Network {
     }
   }
 
+  //Display Helpers
+
   displayServers(columns) {
     //this.ns.clearLog();
 
@@ -98,12 +100,14 @@ export class Network {
       });
     });
     rows.unshift(columns);
-    this.ns.print(rows);
+    //this.ns.print(rows);
     const table = new Table(this.ns, rows);
     this.ns.print(table.toString());
   }
 
-  scpToAllServer(script) {
+  //Server Operations
+
+  scpToAllServers(script) {
     if (typeof script === 'string') {
       this.ns.scp(script);
     } else if (typeof script[Symbol.iterator] === 'function') {
@@ -113,6 +117,8 @@ export class Network {
     }
   }
 
+  //Statistics
+
   getTotalThreads(scriptRam) {
     let availableRamBlocks = this.servers.map((server) => server.ramAvailable);
     let sum = 0;
@@ -120,5 +126,9 @@ export class Network {
       sum += Math.floor(ram / scriptRam);
     }
     return sum;
+  }
+
+  getServerProperties() {
+    return Object.keys(this.servers[0]);
   }
 }

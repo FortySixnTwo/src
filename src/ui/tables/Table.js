@@ -14,8 +14,13 @@ import {
 } from './boxDrawing.js';
 
 export class Table {
-  constructor(ns, rows) {
+  constructor(ns, rows, wrapText = false) {
     this.ns = ns;
+    this.wrapText = wrapText;
+    this.screenWidthPx = 500;
+    ns.resizeTail(this.screenWidthPx, 600);
+    this.textWidth = 12; //Account for margin, padding
+    this.screenWidth = this.screenWidthPx / this.textWidth;
     this.rows = this.formatValues(rows);
   }
 
@@ -23,15 +28,49 @@ export class Table {
   getColumnWidths() {
     const numColumns = this.rows[0].length;
     const columnWidths = new Array(numColumns).fill(0);
-    this.rows.forEach((row) => {
-      row.forEach((cell, i) => {
+    const headersToRemove = [];
+
+    // Calculate column widths
+    this.rows.forEach((row, i) => {
+      row.forEach((cell, j) => {
         const cellWidth = cell.toString().length;
-        if (cellWidth > columnWidths[i]) {
-          columnWidths[i] = cellWidth;
+        if (cellWidth > columnWidths[j]) {
+          columnWidths[j] = cellWidth;
+        }
+        const headerWidth = this.rows[0][j].toString().length;
+        if (headerWidth > columnWidths[j]) {
+          columnWidths[j] = headerWidth;
         }
       });
     });
-    return columnWidths;
+
+    // Remove columns that exceed the maximum allowed width
+    let tableWidth = 0;
+    let finalColumnWidths = [];
+    while (tableWidth > ) {
+      const thisColWidth = columnWidths[i] + 1 + i;
+      let message = `Column: ${this.rows[0][i]}`;
+      if (tableWidth + thisColWidth > this.screenWidth) {
+        headersToRemove.push(this.rows[0][i]);
+        this.ns.print(`${message} is over remaining chars: ${thisColWidth} > ${this.screenWidth - tableWidth}.`);
+      } else {
+        this.ns.print(`${message} is under remaining chars: ${thisColWidth} < ${this.screenWidth - tableWidth}.`);
+        tableWidth += thisColWidth;
+        this.ns.print(`Columns to display: ${finalColumnWidths}`);
+        finalColumnWidths.push(columnWidths[i]);
+      }
+    }
+    for (let i = headersToRemove.length - 1; i >= 0; i--) {
+      const index = headersToRemove[i];
+      const header = this.rows[0][index];
+      this.rows[0].splice(index, 1);
+      this.ns.print(`Deleting ${header} header`);
+      this.rows.slice(1).forEach((row) => row.splice(index + 1, 1));
+    }
+    //this.ns.print(`Original col widths: ${columnWidths}`);
+    //this.ns.print(`final col Widths: ${finalColumnWidths}`);
+    //this.ns.print(`Return object: ${{ finalColumnWidths, headersToRemove }}`);
+    return [finalColumnWidths, headersToRemove];
   }
 
   formatValues(rows) {
@@ -89,7 +128,10 @@ export class Table {
   }
 
   toString() {
-    const columnWidths = this.getColumnWidths();
+    const columnData = this.getColumnWidths();
+    const columnWidths = columnData[0];
+    const headersToRemove = columnData[1];
+
     const topLine = `\n${upLeft}${columnWidths
       .map((width) => horizontal.repeat(width + 2))
       .join(`${horizontalUp}`)}${upRight}`;
@@ -107,6 +149,13 @@ export class Table {
       const cells = row.map((cell, i) => cell.toString().padEnd(columnWidths[i]));
       return `${vertical} ${cells.join(` ${vertical} `)} ${vertical}`;
     });
-    return [topLine, header, interiorLine, ...rows, bottomLine].join('\n');
+
+    // Print headers of removed columns
+    let removedHeaders = '';
+    if (headersToRemove.length > 0) {
+      removedHeaders = `Columns removed from table: ${headersToRemove.join(', ')}`;
+    }
+
+    return [topLine, header, interiorLine, ...rows, bottomLine, removedHeaders].join('\n');
   }
 }
