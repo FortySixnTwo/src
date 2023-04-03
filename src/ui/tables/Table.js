@@ -47,7 +47,7 @@ export class Table {
     // Remove columns that exceed the maximum allowed width
     let tableWidth = 0;
     let finalColumnWidths = [];
-    let i=0;
+    let i = 0;
     while (tableWidth < this.screenWidth) {
       const thisColWidth = columnWidths[i] + 1 + i;
       let message = `Column: ${this.rows[0][i]}`;
