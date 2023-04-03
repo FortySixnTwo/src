@@ -25,7 +25,7 @@ export class Table {
   }
 
   // method to calculate the maximum width of each column
-  getColumnWidths() {
+  async getColumnWidths() {
     const numColumns = this.rows[0].length;
     const columnWidths = new Array(numColumns).fill(0);
     const headersToRemove = [];
@@ -47,7 +47,8 @@ export class Table {
     // Remove columns that exceed the maximum allowed width
     let tableWidth = 0;
     let finalColumnWidths = [];
-    while (tableWidth > ) {
+    let i=0;
+    while (tableWidth < this.screenWidth) {
       const thisColWidth = columnWidths[i] + 1 + i;
       let message = `Column: ${this.rows[0][i]}`;
       if (tableWidth + thisColWidth > this.screenWidth) {
@@ -58,7 +59,9 @@ export class Table {
         tableWidth += thisColWidth;
         this.ns.print(`Columns to display: ${finalColumnWidths}`);
         finalColumnWidths.push(columnWidths[i]);
+        i++;
       }
+      await this.ns.sleep(6000);
     }
     for (let i = headersToRemove.length - 1; i >= 0; i--) {
       const index = headersToRemove[i];
