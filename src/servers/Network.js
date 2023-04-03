@@ -3,8 +3,8 @@ import { Table } from '/src/tables/Table.js';
 
 export class Network {
   constructor(ns, debug = false) {
+    this.debug = debug;
     this.ns = ns;
-    this.debug = ns.args[0] || debug;
     this.servers = [];
   }
 
@@ -31,7 +31,7 @@ export class Network {
       if (!visited.includes(current)) {
         visited.push(current);
 
-        const connections = this.ns.scan(current);
+        const connections = await this.ns.scan(current);
         for (const next of connections.reverse()) {
           if (next !== root && !visited.includes(next)) {
             stack.push(next);
@@ -46,6 +46,13 @@ export class Network {
     }
 
     this.servers = servers;
+
+    if (this.debug) {
+      this.ns.print(`Found ${this.servers.length} servers:`);
+      this.servers.forEach((server) => {
+        this.ns.print(`- ${server.hostname}`);
+      });
+    }
   }
 
   // Helpers
@@ -74,6 +81,12 @@ export class Network {
     }
   }
 
+  applyMultipleFilters(conditions) {
+    for (let [condition, inversion] of Object.entries(conditions)) {
+      this.filterServersBy(condition, inversion);
+    }
+  }
+
   displayServers(columns) {
     //this.ns.clearLog();
 
@@ -88,5 +101,24 @@ export class Network {
     this.ns.print(rows);
     const table = new Table(this.ns, rows);
     this.ns.print(table.toString());
+  }
+
+  scpToAllServer(script) {
+    if (typeof script === 'string') {
+      this.ns.scp(script);
+    } else if (typeof script[Symbol.iterator] === 'function') {
+      for (let item in script) {
+        this.ns.scp(item);
+      }
+    }
+  }
+
+  getTotalThreads(scriptRam) {
+    let availableRamBlocks = this.servers.map((server) => server.ramAvailable);
+    let sum = 0;
+    for (let ram of availableRamBlocks) {
+      sum += Math.floor(ram / scriptRam);
+    }
+    return sum;
   }
 }
