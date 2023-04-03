@@ -16,71 +16,53 @@ import {
 export class Table {
   constructor(ns, rows, wrapText = false) {
     this.ns = ns;
+    this.rows = rows;
     this.wrapText = wrapText;
-    this.screenWidthPx = 500;
+    this.screenWidthPx = 1500;
     ns.resizeTail(this.screenWidthPx, 600);
     this.textWidth = 12; //Account for margin, padding
     this.screenWidth = this.screenWidthPx / this.textWidth;
-    this.rows = this.formatValues(rows);
   }
 
   // method to calculate the maximum width of each column
-  async getColumnWidths() {
-    const numColumns = this.rows[0].length;
-    const columnWidths = new Array(numColumns).fill(0);
-    const headersToRemove = [];
+  getColumnWidths() {
+    let tableWidth = 0;
+    let columnWidths = [];
+    let validColumnWidths = [];
+    let rejects = [];
 
-    // Calculate column widths
-    this.rows.forEach((row, i) => {
-      row.forEach((cell, j) => {
-        const cellWidth = cell.toString().length;
-        if (cellWidth > columnWidths[j]) {
-          columnWidths[j] = cellWidth;
-        }
-        const headerWidth = this.rows[0][j].toString().length;
-        if (headerWidth > columnWidths[j]) {
-          columnWidths[j] = headerWidth;
+    //Get width of each column
+    this.rows.forEach((row) => {
+      row.forEach((cell, columnIndex) => {
+        this.ns.print(cell);
+        const cellWidth = cell.length;
+        if (cellWidth > columnWidths[columnIndex] || columnWidths[columnIndex] === undefined) {
+          columnWidths[columnIndex] = cellWidth;
         }
       });
     });
-
-    // Remove columns that exceed the maximum allowed width
-    let tableWidth = 0;
-    let finalColumnWidths = [];
-    let i = 0;
-    while (tableWidth < this.screenWidth) {
-      const thisColWidth = columnWidths[i] + 1 + i;
-      let message = `Column: ${this.rows[0][i]}`;
-      if (tableWidth + thisColWidth > this.screenWidth) {
-        headersToRemove.push(this.rows[0][i]);
-        this.ns.print(`${message} is over remaining chars: ${thisColWidth} > ${this.screenWidth - tableWidth}.`);
+    // While there's space left on the display add columns to the validColumnWidths
+    columnWidths.forEach((colWidth, i) => {
+      this.ns.print(`Column width: ${colWidth}, remaining space: ${this.screenWidth - tableWidth}.`);
+      if (tableWidth + colWidth <= this.screenWidth) {
+        tableWidth += colWidth;
+        validColumnWidths.push(columnWidths[colWidth]);
       } else {
-        this.ns.print(`${message} is under remaining chars: ${thisColWidth} < ${this.screenWidth - tableWidth}.`);
-        tableWidth += thisColWidth;
-        this.ns.print(`Columns to display: ${finalColumnWidths}`);
-        finalColumnWidths.push(columnWidths[i]);
-        i++;
+        rejects.push(this.rows[0][i]);
       }
-      await this.ns.sleep(6000);
-    }
-    for (let i = headersToRemove.length - 1; i >= 0; i--) {
-      const index = headersToRemove[i];
-      const header = this.rows[0][index];
-      this.rows[0].splice(index, 1);
-      this.ns.print(`Deleting ${header} header`);
-      this.rows.slice(1).forEach((row) => row.splice(index + 1, 1));
-    }
-    //this.ns.print(`Original col widths: ${columnWidths}`);
-    //this.ns.print(`final col Widths: ${finalColumnWidths}`);
-    //this.ns.print(`Return object: ${{ finalColumnWidths, headersToRemove }}`);
-    return [finalColumnWidths, headersToRemove];
+    });
+    // Make the table's array match what it can display.
+    this.rows = this.rows.map((subArray) => subArray.slice(0, validColumnWidths.length - 1));
+
+    this.ns.print(`Rejected: ${rejects}`);
+    return [validColumnWidths, rejects];
   }
 
-  formatValues(rows) {
+  formatValues(rows, columnWidths) {
     const firstRow = rows[0];
     const formattedColumns = [];
     for (let i = 0; i < firstRow.length; i++) {
-      if (typeof rows[1][i] === 'number' || typeof rows[1][i] === 'boolean') {
+      if (typeof rows[1][i] === 'number' || typeof rows[1][i] === ) {
         formattedColumns.push(i);
       }
     }
@@ -90,50 +72,57 @@ export class Table {
       for (let j = 0; j < row.length; j++) {
         const column = formattedColumns[j];
         const value = row[column];
+        const columnWidth = columnWidths[j];
+        let newVal;
 
         //this.ns.print(value);
         if (typeof value === 'number') {
           if (firstRow[column].includes('money')) {
-            row[column] = this.ns.nFormat(value, '$0.000a').padStart(12);
+            newVal = this.ns.nFormat(value, '$0.000a');
           } else if (
             firstRow[column].includes('Percent') ||
             firstRow[column].includes('Growth') ||
             firstRow[column].includes('Chance')
           ) {
-            row[column] = this.ns.nFormat(value / 100, '0.0%').padStart(8);
+            newVal = this.ns.nFormat(value / 100, '0.0%');
           } else {
-            row[column] = this.ns.nFormat(value, '0,0').padStart();
+            newVal = this.ns.nFormat(value, '0,0');
           }
+          newVal.padStart(columnWidth - newVal.length);
         } else if (typeof value === 'boolean') {
-          row[column] = value ? 'Yes' : 'No';
+          newVal = value ? 'Yes' : 'No';
         } else {
-          row[column] = value;
+          newVal = value;
         }
+        row[j] = newVal;
       }
     }
-    return rows;
   }
 
-  formatValue(column, value) {
+  /*formatValue(column, value, width) {
+    let out;
     if (typeof value == 'number') {
       if (column.includes('money')) {
-        return this.ns.nFormat(value, '$0.000a');
+        out = this.ns.nFormat(value, '$0.000a');
       } else if (column.includes('percent') || column.includes('growth') || column.includes('chance')) {
-        return this.ns.nFormat(value, '0.0%');
+        out = this.ns.nFormat(value, '0.0%');
       } else {
-        return this.ns.nFormat(value, '0,0');
+        out = this.ns.nFormat(value, '0,0');
       }
+      out = out.padStart(width - value.length);
     } else if (typeof value === 'boolean') {
-      return value ? 'Yes' : 'No';
+      out = value ? 'Yes' : 'No';
     } else {
       return value;
     }
-  }
+    return out;
+  }*/
 
   toString() {
     const columnData = this.getColumnWidths();
     const columnWidths = columnData[0];
     const headersToRemove = columnData[1];
+    this.formatValues(this.rows, columnWidths);
 
     const topLine = `\n${upLeft}${columnWidths
       .map((width) => horizontal.repeat(width + 2))
@@ -149,7 +138,8 @@ export class Table {
       .map((cell, i) => cell.toString().padEnd(columnWidths[i]))
       .join(` ${vertical} `)} ${vertical}`;
     const rows = this.rows.map((row) => {
-      const cells = row.map((cell, i) => cell.toString().padEnd(columnWidths[i]));
+      //const cells = row.map((cell, i) => cell.toString().padEnd(columnWidths[i]));
+      const cells = row.map((cell, i) => this.ns.print(cell));
       return `${vertical} ${cells.join(` ${vertical} `)} ${vertical}`;
     });
 
