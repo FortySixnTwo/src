@@ -41,23 +41,22 @@ export class Table {
         }
       });
     });
-    
-    // While there's space left on the display add columns to the validColumnWidths
-    /*columnWidths.forEach((colWidth, i) => {
+    // Add indices up until the first over the space limit to the table, it's just easier this way, because of the splice
+    columnWidths.forEach((colWidth, i) => {
       this.ns.print(`Column width: ${colWidth}, remaining space: ${this.screenWidth - tableWidth}.`);
-      if (tableWidth + colWidth <= this.screenWidth) {
-        tableWidth += colWidth;
-        validColumnWidths.push(columnWidths[colWidth]);
+      tableWidth += colWidth;
+      if (tableWidth <= this.screenWidth) {
+        validColumnWidths.push(columnWidths[i]);
       } else {
         rejects.push(this.rows[0][i]);
       }
     });
     // Make the table's array match what it can display.
-    this.rows = this.rows.map((subArray) => subArray.slice(0, validColumnWidths.length - 1));
+    this.rows = this.rows.map((subArray) => subArray.slice(0, validColumnWidths.length));
 
-    this.ns.print(`Rejected: ${rejects}`);*/
-    //return [validColumnWidths, rejects];
-    return [columnWidths, rejects];
+    //this.ns.print(`Rejected: ${rejects}`);
+    return [validColumnWidths, rejects];
+    //return [columnWidths, rejects];
   }
 
   formatValues(columnWidths) {
