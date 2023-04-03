@@ -35,12 +35,13 @@ export class Table {
     this.rows.forEach((row) => {
       row.forEach((cell, columnIndex) => {
         //this.ns.print(cell);
-        const cellWidth = cell.length;
+        const cellWidth = cell.length + 2;
         if (cellWidth > columnWidths[columnIndex] || columnWidths[columnIndex] === undefined) {
-          columnWidths[columnIndex] = cellWidth + 1;
+          columnWidths[columnIndex] = cellWidth;
         }
       });
     });
+    
     // While there's space left on the display add columns to the validColumnWidths
     /*columnWidths.forEach((colWidth, i) => {
       this.ns.print(`Column width: ${colWidth}, remaining space: ${this.screenWidth - tableWidth}.`);
