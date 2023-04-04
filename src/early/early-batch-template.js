@@ -16,15 +16,15 @@ import {
 export async function main(ns) {
   ns.disableLog('ALL');
   ns.tail();
-  ns.resizeTail(1280, 720);
+  //ns.resizeTail(1280, 720);
 
   let servers = await scan(ns);
   let batches = new Set();
 
   while (true) {
     await compromiseServers(ns, servers);
-    let targets = getTargets(servers);
-    let botnet = getBots(servers);
+    let targets = getTargets(ns, servers);
+    let botnet = getBots(ns, servers);
 
     //Run a batch aimed at every target server until an error (no ram, hopefully) occurs.
     for (let target of targets) {
@@ -77,14 +77,16 @@ async function getBatch(ns, target, botnet) {
 }
 
 async function getTargets(ns, servers) {
-  let network = new Network(servers);
+  let network = new Network(ns, servers);
+  network.displayServers();
   network.filterServersBy('maxMoney > 0 && hasAdminRights');
+  network.displayServers();
   network.sortServersBy('maxMoney');
   return network;
 }
 
 async function getBots(ns, servers) {
-  let network = new Network(servers);
+  let network = new Network(ns, servers);
   network.filterServersBy('maxRam > 0 && hasAdminRights');
   network.sortServersBy('maxRam');
   return network;

@@ -19,7 +19,7 @@ export async function main(ns) {
 
   if (columns == undefined) {
     columns = network.getServerProperties();
-    //columns = ['hostname', 'moneyMax', 'moneyAvailable', 'hackDifficulty', 'maxRam'];
+    columns = ['hostname', 'moneyMax', 'moneyAvailable', 'hackDifficulty', 'maxRam'];
   }
   if (filter == undefined) {
     //network.filterServersBy('purchasedByPlayer', true);
