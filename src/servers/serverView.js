@@ -22,7 +22,7 @@ export async function main(ns) {
     //columns = ['hostname', 'moneyMax', 'moneyAvailable', 'hackDifficulty', 'maxRam'];
   }
   if (filter == undefined) {
-    network.filterServersBy('purchasedByPlayer', true);
+    //network.filterServersBy('purchasedByPlayer', true);
     network.filterServersBy('hasAdminRights');
   } else {
     network.filterServersBy(filter);

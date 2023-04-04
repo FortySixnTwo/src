@@ -20,7 +20,7 @@ export class Table {
     this.wrapText = wrapText;
     this.screenWidthPx = 1500;
     ns.resizeTail(this.screenWidthPx, 600);
-    this.textWidth = 12; //Account for margin, padding
+    this.textWidth = 12;
     this.screenWidth = this.screenWidthPx / this.textWidth;
   }
 
@@ -43,7 +43,7 @@ export class Table {
     });
     // Add indices up until the first over the space limit to the table, it's just easier this way, because of the splice
     columnWidths.forEach((colWidth, i) => {
-      this.ns.print(`Column width: ${colWidth}, remaining space: ${this.screenWidth - tableWidth}.`);
+      //this.ns.print(`Column width: ${colWidth}, remaining space: ${this.screenWidth - tableWidth}.`);
       tableWidth += colWidth;
       if (tableWidth <= this.screenWidth) {
         validColumnWidths.push(columnWidths[i]);
@@ -60,7 +60,7 @@ export class Table {
   }
 
   formatValues(columnWidths) {
-    this.ns.print(columnWidths);
+    //this.ns.print(columnWidths);
     const rows = this.rows;
     const firstRow = rows[0];
     for (let i = 1; i < rows.length; i++) {
@@ -111,6 +111,7 @@ export class Table {
   }*/
 
   toString() {
+    this.ns.clearLog();
     const columnData = this.getColumnWidths();
     const columnWidths = columnData[0];
     const headersToRemove = columnData[1];
