@@ -11,17 +11,17 @@ import {
   center,
   vertical,
   horizontal,
-  leftBlock,
-  rightBlock,
 } from './boxDrawing.js';
 
 export class Table {
-  constructor(ns, rows, wrapText = false) {
+  constructor(ns, rows, wrapColumns = false, wrapRows = true) {
     this.ns = ns;
     this.rows = rows;
-    this.wrapText = wrapText;
+    this.wrapColumns = wrapColumns;
+    this.wrapRows = wrapRows;
     this.screenWidthPx = 1000;
-    //ns.resizeTail(this.screenWidthPx, 600);
+    this.screenHeightPx = 600;
+    //ns.resizeTail(this.screenWidthPx, this.screenHeightPx);
     this.textWidth = 12;
     this.screenWidth = this.screenWidthPx / this.textWidth;
   }
@@ -56,9 +56,7 @@ export class Table {
     // Make the table's array match what it can display.
     this.rows = this.rows.map((subArray) => subArray.slice(0, validColumnWidths.length));
 
-    //this.ns.print(`Rejected: ${rejects}`);
     return [validColumnWidths, rejects];
-    //return [columnWidths, rejects];
   }
 
   formatValues(columnWidths) {
@@ -93,35 +91,13 @@ export class Table {
     }
   }
 
-  /*formatValue(column, value, width) {
-    let out;
-    if (typeof value == 'number') {
-      if (column.includes('money')) {
-        out = this.ns.nFormat(value, '$0.000a');
-      } else if (column.includes('percent') || column.includes('growth') || column.includes('chance')) {
-        out = this.ns.nFormat(value, '0.0%');
-      } else {
-        out = this.ns.nFormat(value, '0,0');
-      }
-      out = out.padStart(width - value.length);
-    } else if (typeof value === 'boolean') {
-      out = value ? 'Yes' : 'No';
-    } else {
-      return value;
-    }
-    return out;
-  }*/
-
   toString() {
     const columnData = this.getColumnWidths();
     const columnWidths = columnData[0];
     const headersToRemove = columnData[1];
     this.formatValues(columnWidths);
 
-    const separator = `${leftBlock}${columnWidths
-      .map((width) => ' '.repeat(width + 2))
-      .join(`${rightBlock}${leftBlock}`)}${rightBlock}`;
-    const topLine = `\n${upLeft}${columnWidths
+    const topLine = `${upLeft}${columnWidths
       .map((width) => horizontal.repeat(width + 2))
       .join(`${horizontalUp}`)}${upRight}`;
     const interiorLine = `${verticalLeft}${columnWidths
@@ -130,23 +106,32 @@ export class Table {
     const bottomLine = `${downLeft}${columnWidths
       .map((width) => horizontal.repeat(width + 2))
       .join(`${horizontalDown}`)}${downRight}`;
-    const header = `${leftBlock}${this.rows
+    const header = `${vertical} ${this.rows
       .shift()
       .map((cell, i) => cell.toString().padEnd(columnWidths[i]))
-      .join(` ${rightBlock}${leftBlock}`)}${rightBlock}`;
-    const rowsPerChunk = Math.floor(
-      (this.screenWidth - separator.length) / (columnWidths.reduce((acc, curr) => acc + curr, 0) + 4),
-    );
-    let rows = [];
-    for (let i = 0; i < this.rows.length; i += rowsPerChunk) {
-      let chunk = this.rows.slice(i, i + rowsPerChunk);
-      let rowStrings = chunk.map(
-        (row) =>
-          `${leftBlock}${row
-            .map((cell, i) => cell.toString().padEnd(columnWidths[i]))
-            .join(` ${rightBlock}${leftBlock}`)}${rightBlock}`,
-      );
-      rows.push(rowStrings.join(`${leftBlock}${rightBlock}${separator}${leftBlock}${rightBlock}`));
+      .join(` ${vertical} `)} ${vertical}`;
+    const rows = this.rows.map((row) => {
+      const cells = row.map((cell, i) => cell.toString().padEnd(columnWidths[i]));
+      return `${vertical} ${cells.join(` ${vertical} `)} ${vertical}`;
+    });
+
+    // Calculate the number of tables that can fit within screenWidth
+    const tableWidth = topLine.length + 1;
+    const tablesPerRow = this.wrapRows ? Math.max(Math.floor(this.screenWidth / tableWidth), 1) : 1;
+
+    // Split rows into multiple tables if necessary
+    const rowsPerTable = Math.ceil(rows.length / tablesPerRow);
+    let outputRows = [];
+    for (let i = 0; i < tablesPerRow; i++) {
+      const start = i * rowsPerTable;
+      const end = Math.min((i + 1) * rowsPerTable, rows.length);
+      const tableRows = rows.slice(start, end);
+      while (tableRows.length < rowsPerTable) {
+        tableRows.push(
+          `${vertical} ${' '.repeat(columnWidths[0])} ${vertical} ${' '.repeat(columnWidths[1])} ${vertical}`,
+        );
+      }
+      outputRows.push(tableRows);
     }
 
     // Print headers of removed columns
@@ -155,6 +140,26 @@ export class Table {
       removedHeaders = `Columns removed from table: ${headersToRemove.join(', ')}`;
     }
 
-    return [topLine, header, interiorLine, ...rows, bottomLine, removedHeaders].join('\n');
+    // Build the tables side by side
+    const tables = [];
+    for (let i = 0; i < rowsPerTable; i++) {
+      const rowInTables = outputRows.map((tableRows) => tableRows[i] || '').join('  ');
+      tables.push(rowInTables);
+    }
+
+    const topLines = topLine + '  '.repeat(tableWidth - topLine.length);
+    const interiorLines = interiorLine + '  '.repeat(tableWidth - interiorLine.length);
+    const bottomLines = bottomLine + '  '.repeat(tableWidth - bottomLine.length);
+
+    const result = [
+      topLines.repeat(tablesPerRow),
+      (header + '  ').repeat(tablesPerRow).trim(),
+      interiorLines.repeat(tablesPerRow),
+      ...tables,
+      bottomLines.repeat(tablesPerRow),
+      removedHeaders,
+    ].join('\n');
+
+    return result;
   }
 }

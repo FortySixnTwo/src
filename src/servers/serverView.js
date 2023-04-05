@@ -18,7 +18,8 @@ export async function main(ns) {
   let filter = undefined;
 
   if (columns == undefined) {
-    columns = network.getServerProperties();
+    //columns = network.getServerProperties();
+    //columns = ['hostname', 'moneyMax'];
     columns = ['hostname', 'moneyMax', 'moneyAvailable', 'hackDifficulty', 'maxRam'];
   }
   if (filter == undefined) {

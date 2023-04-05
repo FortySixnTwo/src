@@ -103,7 +103,7 @@ export class Hacknet {
    */
 
   //Upgrades all of the nodes in the net by an amount
-  async upgradeNodeProperty(property, increment) {
+  async upgradeHacknetProperty(property, increment) {
     let nodesToUpgrade = this.nodes.filter(
       (node) => node[property] === this[`getCurrent${property[0].toUpperCase()}${property.slice(1)}`](),
     );
@@ -164,26 +164,29 @@ export class Hacknet {
    * Display methods
    */
 
-  displayNodes(columns) {
+  displayNodes() {
     const columns = ['index', 'level', 'cores', 'ram'];
     const config = {
-      hostname: 'Hostname',
-      hasAdminRights: 'Admin',
-      numOpenPortsRequired: 'Required Ports',
-      moneyAvailable: 'Current $',
-      moneyMax: 'Max $',
+      index: '#',
+      level: 'Lvl.',
+      ram: 'Ram',
+      cores: 'Cores',
     };
     //this.ns.clearLog();
 
-    let servers = this.servers;
+    let nodes = this.nodes;
 
-    const rows = servers.map((server) => {
+    // map everything out into a 2d array of arrays.
+    const rows = nodes.map((node) => {
       return columns.map((column) => {
-        return server[column];
+        return node[column];
       });
     });
-    rows.unshift(columns);
-    //this.ns.print(rows);
+
+    //Make a header from the nicer property names and put that in the table data
+    const header = columns.map((column) => config[column]);
+    rows.unshift(header);
+
     const table = new Table(this.ns, rows);
     this.ns.print(table.toString());
   }
