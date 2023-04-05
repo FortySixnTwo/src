@@ -74,10 +74,10 @@ export class Network {
   }
 
   filterServersBy(condition, invert = false) {
-    if (invert) {
-      this.servers = this.servers.filter((server) => !server[condition]);
+    if (typeof condition === 'function') {
+      this.servers = this.servers.filter((server) => condition(server) !== invert);
     } else {
-      this.servers = this.servers.filter((server) => server[condition]);
+      this.servers = this.servers.filter((server) => server[condition] !== invert);
     }
   }
 
@@ -90,6 +90,13 @@ export class Network {
   //Display Helpers
 
   displayServers(columns) {
+    const config = {
+      hostname: 'Hostname',
+      hasAdminRights: 'Admin',
+      numOpenPortsRequired: 'Open ports needed',
+      moneyAvailable: 'Current $',
+      moneyMax: 'Max $',
+    };
     //this.ns.clearLog();
 
     let servers = this.servers;
@@ -125,7 +132,7 @@ export class Network {
     for (let ram of availableRamBlocks) {
       sum += Math.floor(ram / scriptRam);
     }
-    return sum;
+    return Math.ceil(sum);
   }
 
   getServerProperties() {

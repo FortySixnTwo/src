@@ -14,17 +14,18 @@ import {
 } from '@/batch/hackingConstants.js';
 
 export async function main(ns) {
-  ns.disableLog('ALL');
+  //ns.disableLog('ALL');
   ns.tail();
   //ns.resizeTail(1280, 720);
 
-  let servers = await scan(ns);
+  let servers = new Network(ns);
+  await servers.setFromNetwork();
   let batches = new Set();
 
   while (true) {
     await compromiseServers(ns, servers);
-    let targets = getTargets(ns, servers);
-    let botnet = getBots(ns, servers);
+    let targets = await getTargets(ns, servers);
+    let botnet = await getBots(ns, servers);
 
     //Run a batch aimed at every target server until an error (no ram, hopefully) occurs.
     for (let target of targets) {
@@ -78,8 +79,10 @@ async function getBatch(ns, target, botnet) {
 
 async function getTargets(ns, servers) {
   let network = new Network(ns, servers);
+  ns.print(network, network[2]);
+  const filter = (server) => server.maxMoney > 5000 && ns.getHacking() > ns.getPlayerserver.requiredHackingSkill();
   network.displayServers();
-  network.filterServersBy('maxMoney > 0 && hasAdminRights');
+  network.filterServersBy(filter);
   network.displayServers();
   network.sortServersBy('maxMoney');
   return network;

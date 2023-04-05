@@ -1,45 +1,51 @@
 /** @param {NS} ns **/
-import { HacknetNodeConstants } from "/@/hacknet/Constants.js";
-import { BuyerSettings } from "@/conf/Constants";
+import { HacknetNodeConstants, Hacknet } from '/@/hacknet/Constants.js';
+import { BuyerSettings } from '@/conf/Constants';
 /*
  *  Notes:
  *    Need to know:
  *      max amount of each upgrade
  *      max nodes
  *      ROI of each
- *      How to get the ROI
- * 
- * 
+ *      How to get the ROI for new nodes
+ *
+ *
  * General Process:
  * Make sure list of nodes is current
  * While there's upgrades left to buy
  * Get the lowest value next purchase of each option
  * Find the ROIs, and upgrade the quickest
  */
+const levelsPerBuy = 5;
+const ramPerBuy = 1;
+const coresPerBuy = 1;
+
 export async function main(ns) {
-    //Node constants
-    const 
+  //Node constants
 
+  const hacknet = new Hacknet(ns);
+  hacknet.findNodes();
 
-    const nodes = [];
-
-
-
-    while ( true ) {
-        if ( buy node ) 
-        await ns.sleep(600);
-    }
+  while (hacknet.hasRemainingUpgrades()) {
+    let targetUpgrade = getTargetUpgrade();
+    await ns.sleep(600);
+  }
 }
 
 /*
- * Boolean Checks
+ * Target choosing logic
  */
-function isRe
 
-async function getNodes(ns) {
-    let nodes = [];
-    let numNodes = ns.hacknet.numNodes()
-    for (let i = 0; i > 0; i++) {
-        nodes.add[i:];
-    }
+function getTargetUpgrade(ns, nodes) {
+  const targets
+
+  if (ns.fileExists('formulas.exe')) {
+    return getSmartTarget(nodes);
+  } else {
+    return getDumbTarget(nodes);
+  }
 }
+
+function getSmartTarget(nodes) {}
+
+function getDumbTargets(nodes) {}

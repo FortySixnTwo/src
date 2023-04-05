@@ -16,6 +16,7 @@ export const HacknetNodeConstants = {
   MaxLevel: 200,
   MaxRam: 64,
   MaxCores: 16,
+  MaxServers: 25,
 };
 
 export const HacknetServerConstants = {

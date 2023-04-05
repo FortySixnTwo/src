@@ -35,6 +35,9 @@ export class Server {
       min: this.data.minDifficulty,
     };
   }
+  get requiredHackingSkill() {
+    return this.data.requiredHackingSkill;
+  }
   get money() {
     return {
       available: this.data.moneyAvailable,

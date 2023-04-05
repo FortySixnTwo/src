@@ -11,6 +11,8 @@ import {
   center,
   vertical,
   horizontal,
+  leftBlock,
+  rightBlock,
 } from './boxDrawing.js';
 
 export class Table {
@@ -18,8 +20,8 @@ export class Table {
     this.ns = ns;
     this.rows = rows;
     this.wrapText = wrapText;
-    this.screenWidthPx = 1500;
-    ns.resizeTail(this.screenWidthPx, 600);
+    this.screenWidthPx = 1000;
+    //ns.resizeTail(this.screenWidthPx, 600);
     this.textWidth = 12;
     this.screenWidth = this.screenWidthPx / this.textWidth;
   }
@@ -111,12 +113,14 @@ export class Table {
   }*/
 
   toString() {
-    this.ns.clearLog();
     const columnData = this.getColumnWidths();
     const columnWidths = columnData[0];
     const headersToRemove = columnData[1];
     this.formatValues(columnWidths);
 
+    const separator = `${leftBlock}${columnWidths
+      .map((width) => ' '.repeat(width + 2))
+      .join(`${rightBlock}${leftBlock}`)}${rightBlock}`;
     const topLine = `\n${upLeft}${columnWidths
       .map((width) => horizontal.repeat(width + 2))
       .join(`${horizontalUp}`)}${upRight}`;
@@ -126,14 +130,24 @@ export class Table {
     const bottomLine = `${downLeft}${columnWidths
       .map((width) => horizontal.repeat(width + 2))
       .join(`${horizontalDown}`)}${downRight}`;
-    const header = `${vertical} ${this.rows
+    const header = `${leftBlock}${this.rows
       .shift()
       .map((cell, i) => cell.toString().padEnd(columnWidths[i]))
-      .join(` ${vertical} `)} ${vertical}`;
-    const rows = this.rows.map((row) => {
-      const cells = row.map((cell, i) => cell.toString().padEnd(columnWidths[i]));
-      return `${vertical} ${cells.join(` ${vertical} `)} ${vertical}`;
-    });
+      .join(` ${rightBlock}${leftBlock}`)}${rightBlock}`;
+    const rowsPerChunk = Math.floor(
+      (this.screenWidth - separator.length) / (columnWidths.reduce((acc, curr) => acc + curr, 0) + 4),
+    );
+    let rows = [];
+    for (let i = 0; i < this.rows.length; i += rowsPerChunk) {
+      let chunk = this.rows.slice(i, i + rowsPerChunk);
+      let rowStrings = chunk.map(
+        (row) =>
+          `${leftBlock}${row
+            .map((cell, i) => cell.toString().padEnd(columnWidths[i]))
+            .join(` ${rightBlock}${leftBlock}`)}${rightBlock}`,
+      );
+      rows.push(rowStrings.join(`${leftBlock}${rightBlock}${separator}${leftBlock}${rightBlock}`));
+    }
 
     // Print headers of removed columns
     let removedHeaders = '';
