@@ -1,7 +1,7 @@
 /** @param {NS} ns */
 
 /*
- * Class to handle targetting, distributing and monitoring hack cycle batches.
+ * Class to handle targeting, distributing and monitoring hack cycle batches.
  * Uses sequential batches without forumlas and parallel batches with it.
  *
  */
