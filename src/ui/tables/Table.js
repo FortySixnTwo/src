@@ -14,16 +14,16 @@ import {
 } from './boxDrawing.js';
 
 export class Table {
-  constructor(ns, rows, wrapColumns = false, wrapRows = true) {
+  constructor(ns, rows, maxWidth = 600, maxHeight = 500, fitWidth = true, wrapColumns = false, wrapRows = true) {
     this.ns = ns;
     this.rows = rows;
     this.wrapColumns = wrapColumns;
     this.wrapRows = wrapRows;
-    this.screenWidthPx = 1000;
-    this.screenHeightPx = 600;
-    //ns.resizeTail(this.screenWidthPx, this.screenHeightPx);
-    this.textWidth = 12;
-    this.screenWidth = this.screenWidthPx / this.textWidth;
+    this.maxWidthPx = maxWidth;
+    this.maxHeightPx = maxHeight;
+    this.fitWidth = fitWidth;
+    this.textWidth = 12.25;
+    this.screenWidth = this.maxWidthPx / this.textWidth;
   }
 
   // method to calculate the maximum width of each column
@@ -37,7 +37,7 @@ export class Table {
     this.rows.forEach((row) => {
       row.forEach((cell, columnIndex) => {
         //this.ns.print(cell);
-        const cellWidth = cell.length + 2;
+        const cellWidth = cell.length + 5;
         if (cellWidth > columnWidths[columnIndex] || columnWidths[columnIndex] === undefined) {
           columnWidths[columnIndex] = cellWidth;
         }
@@ -56,11 +56,18 @@ export class Table {
     // Make the table's array match what it can display.
     this.rows = this.rows.map((subArray) => subArray.slice(0, validColumnWidths.length));
 
+    // Scale validColumnWidths to fit the screen width if fitWidth is true
+    if (this.fitWidth) {
+      const remainingSpace = this.screenWidth - tableWidth;
+      const extraSpacePerColumn = remainingSpace / validColumnWidths.length;
+
+      validColumnWidths = validColumnWidths.map((width) => width + extraSpacePerColumn);
+    }
+
     return [validColumnWidths, rejects];
   }
 
   formatValues(columnWidths) {
-    //this.ns.print(columnWidths);
     const rows = this.rows;
     const firstRow = rows[0];
     for (let i = 1; i < rows.length; i++) {
@@ -68,24 +75,42 @@ export class Table {
         let value = rows[i][j];
         let newVal;
         if (typeof value === 'number') {
-          //this.ns.print(newVal + " " + columnWidths);
-          if (firstRow[j].includes('money')) {
-            newVal = this.ns.nFormat(value, '$0.000a');
-          } else if (
-            firstRow[j].includes('Percent') ||
-            firstRow[j].includes('Growth') ||
-            firstRow[j].includes('Chance')
-          ) {
+          //this.ns.print(`Processing value: ${value}, header: ${firstRow[j]}`);
+          if (new RegExp('money|\\$', 'i').test(firstRow[j])) {
+            //this.ns.print('Money case');
+            newVal = this.ns.nFormat(value, '0.000a');
+            // Minus 2 to account for $ and spacing
+            newVal = newVal.padStart(columnWidths[j] - 1);
+            newVal = '$' + newVal;
+          } else if (new RegExp('Percent|Growth|Chance', 'i').test(firstRow[j])) {
+            //this.ns.print('Percent case');
             newVal = this.ns.nFormat(value / 100, '0.0%');
+            newVal = newVal.padStart(columnWidths[j]);
+          } else if (new RegExp('Ram', 'i').test(firstRow[j])) {
+            //this.ns.print('Ram case');
+            if (value >= 1e12) {
+              // 1 PB
+              newVal = this.ns.nFormat(value / 1e12, '0.0') + 'PB';
+            } else if (value >= 1e9) {
+              // 1 TB
+              newVal = this.ns.nFormat(value / 1e9, '0.0') + 'TB';
+            } else {
+              newVal = this.ns.nFormat(value, '0,0') + 'GB';
+            }
+            newVal = newVal.padStart(columnWidths[j]);
           } else {
+            //this.ns.print('General number case');
             newVal = this.ns.nFormat(value, '0,0');
+            newVal = newVal.padStart(columnWidths[j]);
           }
-          newVal = newVal.padStart(columnWidths[j]);
         } else if (typeof value === 'boolean') {
+          //this.ns.print('Bool case');
           newVal = value ? 'Yes' : 'No';
         } else {
+          //this.ns.print('No format case');
           newVal = value;
         }
+        //this.ns.print(`Processed Value: ${newVal}\n`);
         this.rows[i][j] = newVal;
       }
     }
@@ -117,8 +142,9 @@ export class Table {
 
     // Calculate the number of tables that can fit within screenWidth
     const tableWidth = topLine.length + 1;
-    const tablesPerRow = this.wrapRows ? Math.max(Math.floor(this.screenWidth / tableWidth), 1) : 1;
-
+    const tablesPerRow = this.wrapRows
+      ? Math.min(Math.max(Math.floor(this.screenWidth / tableWidth), 1), this.rows.length)
+      : 1;
     // Split rows into multiple tables if necessary
     const rowsPerTable = Math.ceil(rows.length / tablesPerRow);
     let outputRows = [];

@@ -47,16 +47,16 @@ export async function main(ns) {
         if (availableThreads > 1) {
           if (ns.getServerSecurityLevel(targetServer) > ns.getServerMinSecurityLevel(targetServer)) {
             ns.print(`Executing weaken on ${server} with ${availableThreads} threads, aimed at ${targetServer}.`);
-            ns.scp('/batch/weaken.js', server);
-            ns.exec('/batch/weaken.js', server, availableThreads, targetServer);
+            ns.scp('/batch/bin/weaken.js', server);
+            ns.exec('/batch/bin/weaken.js', server, availableThreads, targetServer);
           } else if (ns.getServerMoneyAvailable(targetServer) < ns.getServerMaxMoney(targetServer)) {
             ns.print(`Executing grow on ${server} with ${availableThreads} threads, aimed at ${targetServer}.`);
-            ns.scp('/batch/grow.js', server);
-            ns.exec('/batch/grow.js', server, availableThreads, targetServer);
+            ns.scp('/batch/bin/grow.js', server);
+            ns.exec('/batch/bin/grow.js', server, availableThreads, targetServer);
           } else {
             ns.print(`Executing hack on ${server} with ${availableThreads} threads, aimed at ${targetServer}.`);
-            ns.scp('/batch/hack.js', server);
-            ns.exec('/batch/hack.js', server, availableThreads, targetServer);
+            ns.scp('/batch/bin/hack.js', server);
+            ns.exec('/batch/bin/hack.js', server, availableThreads, targetServer);
           }
         }
       } else {

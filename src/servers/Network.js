@@ -106,8 +106,13 @@ export class Network {
         return server[column];
       });
     });
-    rows.unshift(columns);
-    //this.ns.print(rows);
+
+    // Map columns to their beautified headers
+    const headers = columns.map((column) => {
+      return config[column] ? config[column] : column;
+    });
+
+    rows.unshift(headers);
     const table = new Table(this.ns, rows);
     this.ns.print(table.toString());
   }

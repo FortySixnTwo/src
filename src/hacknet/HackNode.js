@@ -4,8 +4,8 @@ import { HacknetNodeConstants } from '/src/hacknet/Constants.js';
 export class HackNode {
   constructor(ns, index) {
     this.ns = ns;
-    this._index = index();
-    this._data = this.ns.getNodeStats(this._index);
+    this._index = index;
+    this._data = this.ns.hacknet.getNodeStats(this._index);
   }
 
   /*
@@ -18,7 +18,7 @@ export class HackNode {
 
   set index(value) {
     this._index = value;
-    this._data = this.ns.getNodeStats(this._index);
+    this._data = this.ns.hacknet.getNodeStats(this._index);
   }
 
   get name() {
@@ -82,6 +82,6 @@ export class HackNode {
    */
 
   updateData() {
-    this._data = this.ns.getNodeStats(this._index);
+    this._data = this.ns.hacknet.getNodeStats(this._index);
   }
 }

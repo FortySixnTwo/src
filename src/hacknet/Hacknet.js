@@ -1,193 +1,243 @@
 /** @param {NS} ns **/
-import { BudgetMult } from '/src/conf/Constants';
 import { HacknetNodeConstants } from '/src/hacknet/Constants.js';
 import { HackNode } from '/src/hacknet/HackNode.js';
 import { Table } from '/src/ui/tables/Table';
-import(BudgetMult);
 
 export class Hacknet {
   constructor(ns) {
     this.ns = ns;
-    this.nodes = [];
+    this.nodes = this.getNodes();
+    //Amount of levels to purchase for a stat in one go
     this.increments = {
       levels: 5,
       ram: 1,
       cores: 1,
     };
-    this._currentNodes = 0;
-    this._nextNodes = null;
-    this._currentLevel = null;
-    this._nextLevel = null;
-    this._currentRam = null;
-    this._nextRam = null;
-    this._currentCores = null;
-    this._nextCores = null;
+    //Budget for buying nodes is capped at 0.1 * available money
+    this.budgetMultiplier = 0.1;
+
+    this.targetUpgrade = { property: '', cost: Infinity };
+    this.nodesToUpgrade = [];
   }
 
   /*
-   * Constructor methods
+   * Constructor Methods
    */
 
-  findNodes() {
+  getNodes() {
     const existingNodes = [];
     let numNodes = this.ns.hacknet.numNodes();
 
     for (let i = 0; i < numNodes; i++) {
-      existingNodes.add(new HackNode(i));
+      existingNodes.push(new HackNode(this.ns, i));
     }
-    return;
+    return existingNodes;
+  }
+
+  updateNodes() {
+    this.nodes = this.getNodes();
   }
 
   /*
    * Getters
    */
-  get currentLevel() {
-    return this.getMin('level');
+  get numNodes() {
+    return this.nodes.length;
+  }
+  get nextNodeCost() {
+    return this.ns.hacknet.getPurchaseNodeCost();
   }
 
-  get nextLevel() {
-    return this.currentLevel() + 1;
+  get currentLevel() {
+    return Math.min(...this.nodes.map((node) => node.level));
+  }
+  get nextLevelCost() {
+    return this.ns.hacknet.getLevelUpgradeCost(this.minLevelIndex, this.increments.levels);
   }
 
   get currentRam() {
-    return this.getMin('ram');
+    return Math.min(...this.nodes.map((node) => node.ram));
   }
-
-  get nextRam() {
-    return this.currentRam() * 2;
+  get nextRamCost() {
+    return this.ns.hacknet.getRamUpgradeCost(Math.log2(this.minRamIndex) + 1, this.increments.levels);
   }
 
   get currentCores() {
-    return this.getMin('cores');
+    return Math.min(...this.nodes.map((node) => node.cores));
+  }
+  get nextCoresCost() {
+    return this.ns.hacknet.getCoreUpgradeCost(this.minCoresIndex, this.increments.cores);
   }
 
-  get nextCores() {
-    return this.currentCores() + 1;
+  get minLevelIndex() {
+    let minServers = this.nodes.filter((node) => node.level === this.currentLevel);
+    return minServers[0].index;
+  }
+
+  get minRamIndex() {
+    let minServers = this.nodes.filter((node) => node.ram === this.currentRam);
+    return minServers[0].index;
+  }
+
+  get minCoresIndex() {
+    let minServers = this.nodes.filter((node) => node.cores === this.currentCores);
+    return minServers[0].index;
+  }
+
+  get budget() {
+    return this.ns.getServerMoneyAvailable('home') * this.budgetMultiplier;
   }
 
   /*
-   * Helper
+   * Upgrade methods
    */
 
-  //Returns min value of any property in the node list
-  getMin(property) {
-    return Math.min(this.nodes.map((node) => node[property]));
-  }
+  // Iterator helpers
 
-  /*
-   * Boolean Checks
-   */
-
-  canUpgrade() {
+  hasNextUpgrade() {
     return this.canBuyNodes() || this.canUpgradeLevel() || this.canUpgradeRam() || this.canUpgradeCores();
   }
 
   canBuyNodes() {
-    return this.nodes.length < HacknetNodeConstants.MaxServers;
+    return this.numNodes < HacknetNodeConstants.MaxServers;
   }
 
   canUpgradeLevel() {
-    return this.getCurrentLevel() === HacknetNodeConstants.MaxLevel;
+    return this.minLevel !== HacknetNodeConstants.MaxLevel;
   }
 
   canUpgradeRam() {
-    this.getCurrentRam() === HacknetNodeConstants.MaxRam;
+    this.minRam !== HacknetNodeConstants.MaxRam;
   }
 
   canUpgradeCores() {
-    this.getCurrentCores() === HacknetNodeConstants.MaxCores;
+    this.minCores !== HacknetNodeConstants.MaxCores;
   }
 
-  /*
-   * ???
-   */
+  isNodesToUpgrade() {
+    return this.nodesToUpgrade.length !== 0;
+  }
 
-  //Upgrades all of the nodes in the net by an amount
-  async upgradeHacknetProperty(property, increment) {
-    let nodesToUpgrade = this.nodes.filter(
-      (node) => node[property] === this[`getCurrent${property[0].toUpperCase()}${property.slice(1)}`](),
-    );
+  // Upgrade target methods
+  findNextUpgrade() {
+    let consideredUpgrade = { property: '', cost: Infinity };
 
-    while (nodesToUpgrade.length > 0) {
-      for (let node of nodesToUpgrade) {
-        const index = node.index;
-        const wallet = this.ns.getServerMoneyAvailable('home');
-        const budget = wallet * BudgetMult.HackNet;
-        let cost;
+    if (this.numNodes === 0) {
+      consideredUpgrade = { property: 'node', cost: this.ns.hacknet.getPurchaseNodeCost() };
+    } else {
+      // Compared ROI or cost and returns an object with a {upgrade:'', cost: n} key set.
+      const upgradeCosts = {
+        level: this.nextLevelCost,
+        ram: this.nextRamCost,
+        cores: this.nextCoresCost,
+        node: this.nextNodeCost,
+      };
 
-        // Get cost of the upgrade
-        if (property === 'levels') {
-          cost = this.ns.HackNet.getLevelUpgradeCost(node[index]);
-        } else if (property === 'ram') {
-          cost = this.ns.HackNet.getRamUpgradeCost(node[index]);
-        } else if (property === 'cores') {
-          cost = this.ns.HackNet.getCoreUpgradeCost(node[index]);
-        }
-
-        //Check if it's in budget, if so buy the upgrade, update the data, strike the index from the list to be done, and await async gods
-        if (cost <= budget) {
-          if (this.ns.hacknet.upgradeCore(index, increment)) {
-            const updatedNode = this.nodes.find((node) => node.index === index);
-            if (property === 'ram') {
-              updatedNode.ram *= 2;
-            } else {
-              updatedNode[property] += 1;
-            }
-            nodesToUpgrade = nodesToUpgrade.filter((node) => node.index !== index);
+      // Work out best return on investment if we have formulas, buy the cheapest if we've not.
+      if (this.ns.fileExists('Formulas.exe')) {
+        this.ns.print('TODO!');
+      } else {
+        for (const [upgrade, cost] of Object.entries(upgradeCosts)) {
+          if (cost < consideredUpgrade.cost) {
+            consideredUpgrade.cost = cost;
+            consideredUpgrade.property = upgrade;
           }
         }
-        await this.ns.sleep(60);
       }
     }
+
+    this.targetUpgrade = consideredUpgrade;
+    //this.ns.print(`New target found: ${this.targetUpgrade.property}`);
+    this.updateUpgradeList();
   }
 
-  buyNode() {
-    let nodeIndex = this.ns.purchaseNode();
-    if (nodeIndex >= -1) {
-      this.nodes.add(new HackNode(nodeIndex));
+  updateUpgradeList() {
+    if (this.targetUpgrade.property === 'level') {
+      this.nodesToUpgrade = this.nodes.filter((node) => node.level === this.currentLevel);
+    } else if (this.targetUpgrade.property === 'ram') {
+      this.nodesToUpgrade = this.nodes.filter((node) => node.ram === this.currentRam);
+    } else if (this.targetUpgrade.property === 'cores') {
+      this.nodesToUpgrade = this.nodes.filter((node) => node.cores === this.currentCores);
+    } else if (this.targetUpgrade.property === 'node') {
+      this.nodesToUpgrade.add({ null: null });
     }
+    //this.ns.print(`New nodes in need of upgrade are: ${this.nodesToUpgrade}`);
   }
 
-  async upgradeLevels() {
-    await this.upgradeNodeProperty('levels', this.increments.levels);
-  }
+  // Actual upgrade methods
+  upgradeNode() {
+    let index = this.nodesToUpgrade[0].index;
+    let property = this.targetUpgrade.property;
+    const increment = this.increments[property];
+    let result;
+    if (this.budget > this.targetUpgrade.cost) {
+      if (property === 'node') {
+        result = this.ns.hacknet.purchaseNode();
+      } else if (property === 'level') {
+        result = this.ns.hacknet.upgradeLevel(index, increment);
+      } else if (property === 'ram') {
+        result = this.ns.hacknet.upgradeRam(index, increment);
+      } else if (property === 'cores') {
+        result = this.ns.hacknet.upgradeCore(index, increment);
+      }
 
-  async upgradeRams() {
-    await this.upgradeNodeProperty('ram', this.increments.ram);
-  }
-
-  async upgradeCores() {
-    await this.upgradeNodeProperty('cores', this.increments.cores);
+      if (result) {
+        const updatedNode = this.nodes.find((node) => node.index === index);
+        if (property === 'ram') {
+          updatedNode.ram *= 2;
+        } else if (property === 'node') {
+          this.nodes.push(result);
+          this.nodesToUpgrade = [];
+        } else {
+          updatedNode[property] += 1;
+        }
+        this.nodesToUpgrade = this.nodesToUpgrade.filter((node) => node.index !== index);
+      }
+    }
+    return result;
   }
 
   /*
-   * Display methods
+   * Display
    */
 
-  displayNodes() {
-    const columns = ['index', 'level', 'cores', 'ram'];
-    const config = {
-      index: '#',
-      level: 'Lvl.',
-      ram: 'Ram',
-      cores: 'Cores',
-    };
+  display() {
     //this.ns.clearLog();
+    this.updateNodes();
 
-    let nodes = this.nodes;
+    const colHeaders = {
+      rowHeaders: 'Hacknet Stats',
+      count: 'Count',
+      costs: 'Next cost',
+    };
 
-    // map everything out into a 2d array of arrays.
-    const rows = nodes.map((node) => {
-      return columns.map((column) => {
-        return node[column];
-      });
+    const rowHeaders = {
+      numNodes: 'Nodes',
+      currentLevel: 'Level',
+      currentRam: 'Ram',
+      currentCores: 'Cores',
+    };
+
+    // Get an array of the class properties and their corresponding values
+    const upgrades = Object.keys(colHeaders).map((property) => {
+      return this[property];
     });
 
-    //Make a header from the nicer property names and put that in the table data
-    const header = columns.map((column) => config[column]);
-    rows.unshift(header);
+    // Map properties to their beautified headers
+    const headers = Object.keys(colHeaders).map((property) => {
+      return colHeaders[property] ? colHeaders[property] : property;
+    });
+
+    // Calculate costs
+    const costs = [this.nextLevelCost, this.nextRamCost, this.nextCoresCost];
+
+    // Create a 2D array with the headers and the values
+    const rows = [headers, upgrades, costs];
 
     const table = new Table(this.ns, rows);
+    this.ns.resizeTail(table.maxWidthPx, table.maxHeightPx);
+
+    this.ns.clearLog();
     this.ns.print(table.toString());
   }
 }
