@@ -72,6 +72,7 @@ web_modules/
 
 # Optional eslint cache
 .eslintcache
+template.d.js
 
 # Optional stylelint cache
 .stylelintcache
@@ -147,3 +148,10 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Prettierrc
+.prettierrc
+
+# Viteburner
+vite.config.ts
+tsconfig.json
